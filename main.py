@@ -102,6 +102,60 @@ def fillEmptyShoe(numberOfDecks, dealer):
     dealer.say("The shoe is ready to be used.")
     return newShoe
 
+# Checks if the player's decision is accurate based on basic Blackjack strategy
+def is_decision_accurate(playerHand, dealerHand, decision):
+    def card_value(card):
+        if card.rank in ['Jack', 'Queen', 'King']:
+            return 10
+        elif card.rank == 'Ace':
+            return 11  # initially treat Ace as 11
+        else:
+            return int(card.rank)
+
+    def hand_value(cards):
+        value = sum(card_value(card) for card in cards)
+        aces = sum(1 for card in cards if card.rank == 'Ace')
+        while value > 21 and aces:
+            value -= 10  # count Ace as 1 instead of 11
+            aces -= 1
+        is_soft = any(card.rank == 'Ace' for card in cards) and value <= 21
+        return value, is_soft
+
+    player_total, is_soft = hand_value(playerHand.cards)
+    dealer_upcard = dealerHand.cards[0]
+    dealer_value = card_value(dealer_upcard)
+
+    # Normalize input
+    decision = decision.upper()
+
+    # Basic strategy simplified rules (without splits)
+    # These are rules for learning, not 100% complete
+
+    if not is_soft:
+        # Hard hands
+        if player_total <= 8:
+            return decision == 'H'
+        elif player_total == 9:
+            return decision == 'D' if 3 <= dealer_value <= 6 else decision == 'H'
+        elif player_total == 10:
+            return decision == 'D' if dealer_value <= 9 else decision == 'H'
+        elif player_total == 11:
+            return decision == 'D'
+        elif player_total == 12:
+            return decision == 'H' if dealer_value in [2, 3, 7, 8, 9, 10, 11] else decision == 'S'
+        elif 13 <= player_total <= 16:
+            return decision == 'S' if 2 <= dealer_value <= 6 else decision == 'H'
+        else:  # 17 or more
+            return decision == 'S'
+    else:
+        # Soft hands
+        if player_total <= 17:
+            return decision == 'H'
+        elif player_total == 18:
+            return decision == 'S' if dealer_value in [2, 7, 8] else decision == 'H'
+        else:  # Soft 19 or more
+            return decision == 'S'
+
 # Entry point of the game
 def main():
     print("Welcome to Blackjack training!")
@@ -150,8 +204,8 @@ def main():
             dealer.say("I did not understand you so you will stand.")
             playerChoice = 'S'
 
-        # Placeholder for decision correctness
-        accurate = True
+        #  Process player's decision
+        accurate = is_decision_accurate(playerHand, dealerHand, playerChoice)
 
         # Update statistics
         player.playedHands += 1
